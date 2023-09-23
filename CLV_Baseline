@@ -1,0 +1,90 @@
+DECLARE FirstWeek DATE DEFAULT '2020-11-01'; 
+DECLARE LastWeek DATE DEFAULT '2021-01-24';
+
+WITH CTE AS 
+(
+  SELECT
+    user_pseudo_id AS CustomerID, -- 270154 Unique Customers for whole DB
+    CAST(DATE_TRUNC(TIMESTAMP_MICROS(MIN(event_timestamp)), WEEK) AS DATE)  AS RegistrationWeek,
+  FROM
+  `tc-da-1.turing_data_analytics.raw_events` AS events
+  GROUP BY 
+    CustomerID
+  HAVING 
+    RegistrationWeek BETWEEN FirstWeek AND LastWeek -- 267942 unique Customer for that timeframe
+  ORDER BY
+    CustomerID ASC
+),
+
+rev AS
+(
+  SELECT
+    user_pseudo_id,
+    purchase_revenue_in_usd as revenue,
+    CAST(DATE_TRUNC(TIMESTAMP_MICROS(event_timestamp), WEEK) AS DATE) AS purchase_week
+  FROM 
+    `turing_data_analytics.raw_events`
+  WHERE 
+    event_name = 'purchase' AND CAST(DATE_TRUNC(TIMESTAMP_MICROS(event_timestamp), WEEK) AS DATE) BETWEEN FirstWeek AND LastWeek
+),
+Original AS
+(
+  SELECT 
+    CAST(RegistrationWeek AS STRING) AS RegistrationWeek,
+    --COUNT(DISTINCT CustomerID) AS customer, -- SUM of this has to be 267942
+    SUM(CASE WHEN purchase_week = RegistrationWeek THEN revenue END)/COUNT(DISTINCT CustomerID)AS week0,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 1 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week1,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 2 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week2,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 3 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week3,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 4 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week4,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 5 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week5,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 6 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week6,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 7 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week7,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 8 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week8,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 9 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week9,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 10 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week10,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 11 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week11,
+    SUM(CASE WHEN purchase_week = DATE_ADD (RegistrationWeek, INTERVAL 12 WEEK) THEN revenue END)/COUNT(DISTINCT CustomerID) AS week12
+  FROM 
+    CTE c
+  LEFT JOIN 
+    rev r 
+  ON 
+    r.user_pseudo_id = c.CustomerID 
+  GROUP BY 
+    RegistrationWeek
+  ORDER BY 
+    RegistrationWeek
+),
+Averages AS
+(
+  SELECT 
+    'Average'AS RegistrationWeek,
+    ROUND(AVG(week0),4) AS week0,
+    ROUND(AVG(week1),4) AS week1,
+    ROUND(AVG(week2),4) AS week2,
+    ROUND(AVG(week3),4) AS week3,
+    ROUND(AVG(week4),4) AS week4,
+    ROUND(AVG(week5),4) AS week5,
+    ROUND(AVG(week6),4) AS week6,
+    ROUND(AVG(week7),4) AS week7,
+    ROUND(AVG(week8),4) AS week8,
+    ROUND(AVG(week9),4) AS week9,
+    ROUND(AVG(week10),4) AS week10,
+    ROUND(AVG(week11),4) AS week11,
+    ROUND(AVG(week12),4) AS week12
+  FROM 
+    Original
+)
+
+  SELECT 
+    *
+  FROM 
+    Original
+UNION ALL
+  SELECT
+    *
+  FROM
+    Averages
+  ORDER BY
+    1
