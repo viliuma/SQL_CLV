@@ -8,7 +8,7 @@ WITH CTE AS
     user_pseudo_id AS CustomerID, -- 270154 Unique Customers for whole DB
     CAST(DATE_TRUNC(MIN(PARSE_DATE('%Y%m%d',event_date)), WEEK) AS DATE)  AS RegistrationWeek
   FROM
-  `tc-da-1.turing_data_analytics.raw_events` AS events
+  `data_table` AS events
   GROUP BY 
     CustomerID
   HAVING 
@@ -24,7 +24,7 @@ rev AS
     purchase_revenue_in_usd as revenue,
     CAST(DATE_TRUNC(PARSE_DATE('%Y%m%d',event_date), WEEK) AS DATE) AS purchase_week
   FROM 
-    `turing_data_analytics.raw_events`
+    `data_table`
   WHERE 
    event_name = 'purchase' AND CAST(DATE_TRUNC(TIMESTAMP_MICROS(event_timestamp), WEEK) AS DATE) BETWEEN FromDate AND ToDate --check the data range
 ),
